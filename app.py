@@ -6,10 +6,10 @@ import os
 
 # ---------- Inicializar estado de sesión ---------- #
 for key in [
-    'folio', 'edad', 'tiempo_viuda', 'causa_fallecimiento', 'hijos_menores',
-    'telefono', 'observaciones', 'edades_hijos', 'causa_muerte', 'fecha_muerte',
-    'ayuda_solicita', 'rango_edad', 'prioridad_zapopan', 'perfil_cirineas',
-    'atencion_psicologica', 'apoyo_economico', 'apoyo_hijos', 'archivo_cargado'
+    'folio','nombre', 'primer_apellido', 'segundo_apellido', 
+    'edad', 'rango_edad', 'causa_fallecimiento', 'dia_fallecimiento', 
+    'mes_fallecimiento', 'anio_fallecimiento', 'hijos_menores', 'numero_hijos_menores', 
+    'telefono', 'circulo_restaurativo', 'primera_derivacion', 'curp', 'cp', 'colonia', 'municipio', 'archivo_cargado'
 ]:
     if key not in st.session_state:
         st.session_state[key] = None
@@ -19,11 +19,10 @@ st.title("Formulario de registro - Cirineas")
 
 # --------- Limpiar formulario si se acaba de guardar --------- #
 if st.session_state.get("form_reset") is True:
-    for k in [
-        'folio', 'edad', 'tiempo_viuda', 'causa_fallecimiento', 'hijos_menores',
-        'telefono', 'observaciones', 'edades_hijos', 'causa_muerte', 'fecha_muerte',
-        'ayuda_solicita', 'rango_edad', 'prioridad_zapopan', 'perfil_cirineas',
-        'atencion_psicologica', 'apoyo_economico', 'apoyo_hijos'
+    for k in ['folio','nombre', 'primer_apellido', 'segundo_apellido', 
+              'edad', 'rango_edad', 'causa_fallecimiento', 'dia_fallecimiento', 
+              'mes_fallecimiento', 'anio_fallecimiento', 'hijos_menores', 'numero_hijos_menores', 
+              'telefono', 'circulo_restaurativo', 'primera_derivacion', 'curp', 'cp', 'colonia', 'municipio'
     ]:
         st.session_state[k] = None
     st.session_state["form_reset"] = False
@@ -62,14 +61,24 @@ df_control['CP'] = df_control['CP'].astype(str)
 st.markdown("### 📝 Nuevo registro")
 
 # Entradas de texto y numéricas
+
+# FOLIO
 folio = st.text_input("Folio *", value="" if st.session_state['folio'] is None else st.session_state['folio'])
-edad = st.number_input("Edad", min_value=0, max_value=120, value=st.session_state['edad'] or 0)
+if folio.strip() == "":
+    st.error("⚠️ El campo 'Folio' es obligatorio.")
+
+nombre = st.text_input("Nombre(s)", value=st.session_state.get("nombre", ""))
+primer_apellido = st.text_input("Primer apellido", value=st.session_state.get("primer_apellido", ""))
+segundo_apellido = st.text_input("Segundo apellido", value=st.session_state.get("segundo_apellido", ""))
+
+# EDAD
+edad = st.number_input("Edad", min_value=0, max_value=120, value=st.session_state.get("edad") or 0)
 
 # Fx para calcular rango edad
 def calcular_rango_edad(edad):
-    if edad < 22:
-        return "menos de 22"
-    elif 22 <= edad <= 29:
+    if edad < 19:
+        return "menos de 19"
+    elif 20 <= edad <= 29:
         return "22-29"
     elif 30 <= edad <= 39:
         return "30 a 39"
@@ -77,82 +86,88 @@ def calcular_rango_edad(edad):
         return "40 a 49"
     elif 50 <= edad <= 59:
         return "50 a 59"
-    elif edad >= 60:
-        return "60 y más"
-    return "S/E"
+    elif 60 <= edad <= 64:
+        return "60 a 64"
+    elif edad >= 65:
+        return "65 y más"
+    return "Sin dato"
 
 rango_edad = calcular_rango_edad(edad)
+st.text_input("Rango de edad", value=rango_edad, disabled=True)
 
-cp = st.selectbox("Código Postal", sorted(df_control['CP'].unique()))
-colonias = sorted(df_control[df_control['CP'] == cp]['COLONIA'].unique())
-colonia = st.selectbox("Colonia", colonias)
-
-municipio = df_control[(df_control['CP'] == cp) & (df_control['COLONIA'] == colonia)]['MUNICIPIO'].values[0]
-st.text_input("Municipio", value=municipio, disabled=True)
-
-tiempo_viuda = st.text_input("Tiempo de viudez", value="" if st.session_state['tiempo_viuda'] is None else st.session_state['tiempo_viuda'])
-if tiempo_viuda and (not tiempo_viuda.isdigit() or len(tiempo_viuda) > 2):
-    st.warning("⚠️ Solo se permiten números de hasta 2 dígitos.")
-    
+# CAUSA_FALL
 causas = [
     "ACCIDENTE", "ENFERMEDAD", "INFARTO FULMINANTE",
-    "NEGLIGENCIA MEDICA", "SUICIDIO", "VIOLENCIA", "OTRA"
+    "NEGLIGENCIA MEDICA", "SUICIDIO", "VIOLENCIA", "DESCONOCIDA"
 ]
 causa_fallecimiento = st.selectbox("Causa de fallecimiento", causas)
 
-hijos_menores = st.radio("¿Tiene hijas/os menores?", ["Sí", "No"])
-telefono = st.text_input("Teléfono", value=st.session_state['telefono'] or "")
+# DIA | MES | AÑO DE FALLECIMIENTO (DIA_FALL, MES_FALL, ANIO_FALL)
+dia_fallecimiento = st.text_input("Día de fallecimiento (DD)", value=st.session_state.get("dia_fallecimiento", ""))
+if dia_fallecimiento and (not dia_fallecimiento.isdigit() or len(dia_fallecimiento) != 2 or not (1 <= int(dia_fallecimiento) <= 31)):
+    st.warning("⚠️ Ingresa un día válido en formato de dos dígitos (01-31)")
+
+mes_fallecimiento = st.text_input("Mes de fallecimiento (MM)", value=st.session_state.get("mes_fallecimiento", ""))
+if mes_fallecimiento and (not mes_fallecimiento.isdigit() or len(mes_fallecimiento) != 2 or not (1 <= int(mes_fallecimiento) <= 12)):
+    st.warning("⚠️ Ingresa un mes válido en formato de dos dígitos (01-12)")
+
+anio_fallecimiento = st.text_input("Año de fallecimiento (AAAA)", value=st.session_state.get("anio_fallecimiento", ""))
+año_actual = datetime.today().year
+if anio_fallecimiento and (not anio_fallecimiento.isdigit() or len(anio_fallecimiento) != 4 or not (1900 <= int(anio_fallecimiento) <= año_actual)):
+    st.warning(f"⚠️ Ingresa un año válido entre 1900 y {año_actual}")
+
+# NUM_HMD
+hijos_menores = st.radio("¿Tiene hijas/os menores de edad?", ["Sí", "No"])
+cuantos_hijos = st.number_input("¿Cuántos?", min_value=0, max_value=10, value=st.session_state.get("numero_hijos_menores", 0))
+
+# TEL
+telefono = st.text_input("Teléfono", value=st.session_state.get("telefono", ""))
 if telefono and not telefono.isdigit():
     st.warning("⚠️ El teléfono solo debe contener números.")
-    
-observaciones = st.text_area("Observaciones", value=st.session_state['observaciones'] or "")
 
-edades_hijos = st.text_input("Edades de los hijos (separadas por comas)", value=st.session_state['edades_hijos'] or "")
-if edades_hijos:
-    try:
-        edades = [int(e.strip()) for e in edades_hijos.split(",")]
-    except ValueError:
-        st.warning("⚠️ Ingresa solo números separados por comas. Ej: 5, 8, 12")
+# CIR_REST
+circulo_restaurativo = st.selectbox("Círculo restaurativo", ["Sí", "No"], index=0 if st.session_state.get("circulo_restaurativo") == "Sí" else 1)
 
-causa_muerte = st.text_input("Causa de muerte", value=st.session_state['causa_muerte'] or "")
+# PRI_DERIV
+opciones_derivacion = ["Zapopan", "Guadalajara", "Tonalá", "San Pedro Tlaquepaque", "El Salto", "Tlajomulco de Zúñiga", "Cirineas"]
+indice_derivacion = opciones_derivacion.index(st.session_state.get("primera_derivacion", "Zapopan")) if st.session_state.get("primera_derivacion") in opciones_derivacion else 0
+primera_derivacion = st.selectbox("Primera derivación", opciones_derivacion, index=indice_derivacion)
+
+# CP | COLONIA | MUNICIPIO
+cp = st.selectbox("Código Postal", sorted(df_control['CP'].unique()))
+colonias = sorted(df_control[df_control['CP'] == cp]['COLONIA'].unique())
+colonia = st.selectbox("Colonia", colonias)
+municipio = df_control[(df_control['CP'] == cp) & (df_control['COLONIA'] == colonia)]['MUNICIPIO'].values[0]
+st.text_input("Municipio", value=municipio, disabled=True)
+
+# curp
+curp = st.text_input("CURP", value=st.session_state.get("curp", ""))
 
 # Fecha
-fecha_muerte = st.date_input(
-    "Fecha de fallecimiento",
-    value=st.session_state['fecha_muerte'] or datetime.today(),
-    min_value=datetime(1900, 1, 1),
-    max_value=datetime.today()
-)
-
-ayuda_solicita = st.text_area("¿Qué ayuda solicita?", value=st.session_state['ayuda_solicita'] or "")
-st.text_input("Rango de edad", value=rango_edad, disabled=True)
-
-# Selectbox de perfil
-perfil_cirineas = st.selectbox("Perfil Cirineas", ["Sí", "No"], index=0 if st.session_state['perfil_cirineas'] == "Sí" else 1)
-
-# Checkboxes
-prioridad_zapopan = st.checkbox("¿Prioridad Zapopan?", value=st.session_state['prioridad_zapopan'] or False)
-atencion_psicologica = st.checkbox("Atención psicológica", value=st.session_state['atencion_psicologica'] or False)
-apoyo_economico = st.checkbox("Apoyo económico", value=st.session_state['apoyo_economico'] or False)
-apoyo_hijos = st.checkbox("Apoyo para hijas/os", value=st.session_state['apoyo_hijos'] or False)
+#fecha_muerte = st.date_input(
+#    "Fecha de fallecimiento",
+#    value=st.session_state['fecha_muerte'] or datetime.today(),
+#    min_value=datetime(1900, 1, 1),
+#    max_value=datetime.today()
+#)
 
 st.session_state['folio'] = folio
+st.session_state['nombre'] = nombre
+st.session_state['primer_apellido'] = primer_apellido
+st.session_state['segundo_apellido'] = segundo_apellido
 st.session_state['edad'] = edad
-st.session_state['tiempo_viuda'] = tiempo_viuda
-st.session_state['causa_fallecimiento'] = causa_fallecimiento
-st.session_state['hijos_menores'] = hijos_menores
-st.session_state['telefono'] = telefono
-st.session_state['observaciones'] = observaciones
-st.session_state['edades_hijos'] = edades_hijos
-st.session_state['causa_muerte'] = causa_muerte
-st.session_state['fecha_muerte'] = fecha_muerte
-st.session_state['ayuda_solicita'] = ayuda_solicita
 st.session_state['rango_edad'] = rango_edad
-st.session_state['perfil_cirineas'] = perfil_cirineas
-st.session_state['prioridad_zapopan'] = prioridad_zapopan
-st.session_state['atencion_psicologica'] = atencion_psicologica
-st.session_state['apoyo_economico'] = apoyo_economico
-st.session_state['apoyo_hijos'] = apoyo_hijos
+st.session_state['causa_fallecimiento'] = causa_fallecimiento
+st.session_state['dia_fallecimiento'] = dia_fallecimiento
+st.session_state['mes_fallecimiento'] = mes_fallecimiento
+st.session_state['anio_fallecimiento'] = anio_fallecimiento
+st.session_state['hijos_menores'] = hijos_menores
+st.session_state['numero_hijos_menores'] = cuantos_hijos
+st.session_state['telefono'] = telefono
+st.session_state['circulo_restaurativo'] = circulo_restaurativo
+st.session_state['primera_derivacion'] = primera_derivacion
+st.session_state['curp'] = curp
+
 
 # ---------- Guardar entrada ---------- #
 if st.button("Agregar registro"):
@@ -163,39 +178,29 @@ if st.button("Agregar registro"):
     else:
         nueva_fila = pd.DataFrame([{
             'FOLIO': folio.strip(),
+            'NOMBRE': nombre,
+            'APELLIDO1': primer_apellido,
+            'APELLIDO2': segundo_apellido,
             'EDAD': edad,
+            'RANGO_EDAD': rango_edad,
+            'CAUSA_FALL': causa_fallecimiento,
+            'DIA_FALL': dia_fallecimiento,
+            'MES_FALL': mes_fallecimiento,
+            'ANIO_FALL': anio_fallecimiento,
+            'NUM_HMD': cuantos_hijos,
+            'TEL': telefono,
+            'CIRC_REST': circulo_restaurativo,
+            'PRI_DERIV': primera_derivacion,
             'CP': cp,
             'COLONIA': colonia,
-            'MUNICIPIO': municipio,
-            'T_VIUDA': tiempo_viuda,
-            'CAUS_FALL': causa_fallecimiento,
-            'HIJ_MEN': hijos_menores,
-            'TEL': telefono,
-            'OBSERV': observaciones,
-            'EDADES_HIJ': edades_hijos,
-            'CAUS_MUERTE': causa_muerte,
-            'FECHA_MUERTE': fecha_muerte,
-            'AYUDA_SOL': ayuda_solicita,
-            'RANGO_EDAD': rango_edad,
-            'PRIORIDAD_ZAPOPAN': prioridad_zapopan,
-            'PERFIL_CIRINEAS': perfil_cirineas,
-            'ATENCION_PSICO': atencion_psicologica,
-            'APOYO_ECONOMICO': apoyo_economico,
-            'APOYO_HIJOS': apoyo_hijos
+            'NOM_MUN': municipio,
+            'CURP': curp
         }])
         df_capturas = pd.concat([df_capturas, nueva_fila], ignore_index=True)
         st.session_state['archivo_cargado'] = df_capturas
         st.success("✅ Registro agregado.")
+        
         st.session_state["form_reset"] = True
-        st.rerun()
-
-        # Limpiar campos
-        for k in ['folio', 'edad', 'tiempo_viuda', 'causa_fallecimiento', 'hijos_menores',
-                  'telefono', 'observaciones', 'edades_hijos', 'causa_muerte', 'fecha_muerte',
-                  'ayuda_solicita', 'rango_edad', 'prioridad_zapopan', 'perfil_cirineas',
-                  'atencion_psicologica', 'apoyo_economico', 'apoyo_hijos']:
-            st.session_state[k] = None
-
         st.rerun()
 
 # ---------- Descargar archivo actualizado ---------- #
