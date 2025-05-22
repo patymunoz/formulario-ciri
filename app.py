@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import io
+import os
 
 # ---------- Inicializar estado de sesión ---------- #
 for key in [
@@ -50,7 +51,10 @@ if not df_capturas.empty:
     st.dataframe(df_capturas)
 
 # ---------- Cargar catálogo de colonias ---------- #
-df_control = pd.read_excel("BD_-Cirineas_Control-v1.xlsx", sheet_name='Control')
+import os
+
+catalogo_path = os.path.join("data", "auxiliares", "BD_-Cirineas_Control-v1.xlsx")
+df_control = pd.read_excel(catalogo_path, sheet_name="Control")
 df_control = df_control[['COLONIA', 'CP', 'MUNICIPIO']].dropna()
 df_control['CP'] = df_control['CP'].astype(str)
 
