@@ -148,7 +148,13 @@ municipio = df_control[(df_control['CP'] == cp) & (df_control['COLONIA'] == colo
 st.text_input("Municipio", value=municipio, disabled=True)
 
 # curp
-curp = st.text_input("CURP", value=st.session_state.get("curp", ""))
+curp = st.text_input("CURP (18 caracteres)", value=st.session_state.get("curp", ""))
+curp_invalida = False  # Flag
+
+if curp:
+    if len(curp) != 18 or not curp.isalnum():
+        st.error("❌ CURP inválida: debe tener 18 caracteres alfanuméricos.")
+        curp_invalida = True
 
 # apoyos
 
@@ -163,12 +169,16 @@ apoyo_salud = st.checkbox("Requiere apoyo para temas de Salud", value=st.session
 # Curps hijxs menores
 
 curps_hijxs = []
+curps_invalidas = False  # flag
 
 if hijos_menores == "Sí" and cuantos_hijos > 0:
     st.markdown("#### CURP de hijas/os menores")
     for i in range(1, cuantos_hijos + 1):
-        curp = st.text_input(f"CURP de la hija/o #{i}", key=f"curp_hijo_{i}")
-        curps_hijxs.append(curp)
+        curp_hijo = st.text_input(f"CURP de la hija/o #{i}", key=f"curp_hijo_{i}")
+        if curp_hijo and (len(curp_hijo) != 18 or not curp_hijo.isalnum()):
+            st.error(f"❌ CURP #{i} inválida: debe tener 18 caracteres alfanuméricos.")
+            curps_invalidas = True
+        curps_hijxs.append(curp_hijo)
 
 
 # Fecha
@@ -206,10 +216,14 @@ st.session_state['curps_hijos'] = curps_hijxs
 if st.button("Agregar registro"):
     if folio.strip() == "":
         st.error("⚠️ El campo 'Folio' es obligatorio.")
+    elif curp_invalida:
+        st.error("❌ No se puede guardar: la CURP principal es inválida.")
+    elif curps_invalidas:
+        st.error("❌ No se puede guardar: una o más CURP de hijas/os menores no son válidas.")
     elif not df_capturas.empty and folio in df_capturas['FOLIO'].astype(str).values:
         st.warning("⚠️ Ya existe una entrada con ese folio.")
     else:
-        # Crear el diccionario de CURPs (hasta 10 si deseas)
+        # Crear el diccionario de CURPs
         curps_dict = {
             f"CURP_HIJO_{i+1}": curps_hijxs[i] if i < len(curps_hijxs) else ""
             for i in range(6)
