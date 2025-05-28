@@ -9,7 +9,9 @@ for key in [
     'folio','nombre', 'primer_apellido', 'segundo_apellido', 
     'edad', 'rango_edad', 'causa_fallecimiento', 'dia_fallecimiento', 
     'mes_fallecimiento', 'anio_fallecimiento', 'hijos_menores', 'numero_hijos_menores', 
-    'telefono', 'circulo_restaurativo', 'primera_derivacion', 'curp', 'cp', 'colonia', 'municipio', 'archivo_cargado'
+    'telefono', 'circulo_restaurativo', 'primera_derivacion', 'curp', 'cp', 'colonia', 'municipio', 'archivo_cargado',
+    'apoyo_legal', 'apoyo_economico', 'apoyo_hijos',
+    'apoyo_gastos_funerarios', 'apoyo_salud'
 ]:
     if key not in st.session_state:
         st.session_state[key] = None
@@ -118,7 +120,12 @@ if anio_fallecimiento and (not anio_fallecimiento.isdigit() or len(anio_fallecim
 
 # NUM_HMD
 hijos_menores = st.radio("¿Tiene hijas/os menores de edad?", ["Sí", "No"])
-cuantos_hijos = st.number_input("¿Cuántos?", min_value=0, max_value=10, value=st.session_state.get("numero_hijos_menores", 0))
+cuantos_hijos = st.number_input(
+    "¿Cuántos?", 
+    min_value=0, 
+    max_value=10, 
+    value=st.session_state.get("numero_hijos_menores") or 0
+)
 
 # TEL
 telefono = st.text_input("Teléfono", value=st.session_state.get("telefono", ""))
@@ -129,7 +136,7 @@ if telefono and not telefono.isdigit():
 circulo_restaurativo = st.selectbox("Círculo restaurativo", ["Sí", "No"], index=0 if st.session_state.get("circulo_restaurativo") == "Sí" else 1)
 
 # PRI_DERIV
-opciones_derivacion = ["Zapopan", "Guadalajara", "Tonalá", "San Pedro Tlaquepaque", "El Salto", "Tlajomulco de Zúñiga", "Cirineas"]
+opciones_derivacion = ["Zapopan", "Guadalajara", "Tonalá", "San Pedro Tlaquepaque", "El Salto", "Tlajomulco de Zúñiga", "Cirineas", "Centro de Justicia para las Mujeres"]
 indice_derivacion = opciones_derivacion.index(st.session_state.get("primera_derivacion", "Zapopan")) if st.session_state.get("primera_derivacion") in opciones_derivacion else 0
 primera_derivacion = st.selectbox("Primera derivación", opciones_derivacion, index=indice_derivacion)
 
@@ -142,6 +149,27 @@ st.text_input("Municipio", value=municipio, disabled=True)
 
 # curp
 curp = st.text_input("CURP", value=st.session_state.get("curp", ""))
+
+# apoyos
+
+st.markdown("### Apoyos requeridos")
+
+apoyo_legal = st.checkbox("Requiere apoyo legal", value=st.session_state['apoyo_legal'])
+apoyo_economico = st.checkbox("Requiere apoyo económico", value=st.session_state['apoyo_economico'])
+apoyo_hijos = st.checkbox("Requiere apoyo para sus hijos", value=st.session_state['apoyo_hijos'])
+apoyo_gastos_funerarios = st.checkbox("Requiere apoyo para Gastos Funerarios", value=st.session_state['apoyo_gastos_funerarios'])
+apoyo_salud = st.checkbox("Requiere apoyo para temas de Salud", value=st.session_state['apoyo_salud'])
+
+# Curps hijxs menores
+
+curps_hijxs = []
+
+if hijos_menores == "Sí" and cuantos_hijos > 0:
+    st.markdown("#### CURP de hijas/os menores")
+    for i in range(1, cuantos_hijos + 1):
+        curp = st.text_input(f"CURP de la hija/o #{i}", key=f"curp_hijo_{i}")
+        curps_hijxs.append(curp)
+
 
 # Fecha
 #fecha_muerte = st.date_input(
@@ -167,7 +195,12 @@ st.session_state['telefono'] = telefono
 st.session_state['circulo_restaurativo'] = circulo_restaurativo
 st.session_state['primera_derivacion'] = primera_derivacion
 st.session_state['curp'] = curp
-
+st.session_state['apoyo_legal'] = apoyo_legal
+st.session_state['apoyo_economico'] = apoyo_economico
+st.session_state['apoyo_hijos'] = apoyo_hijos
+st.session_state['apoyo_gastos_funerarios'] = apoyo_gastos_funerarios
+st.session_state['apoyo_salud'] = apoyo_salud
+st.session_state['curps_hijos'] = curps_hijxs
 
 # ---------- Guardar entrada ---------- #
 if st.button("Agregar registro"):
@@ -176,6 +209,12 @@ if st.button("Agregar registro"):
     elif not df_capturas.empty and folio in df_capturas['FOLIO'].astype(str).values:
         st.warning("⚠️ Ya existe una entrada con ese folio.")
     else:
+        # Crear el diccionario de CURPs (hasta 10 si deseas)
+        curps_dict = {
+            f"CURP_HIJO_{i+1}": curps_hijxs[i] if i < len(curps_hijxs) else ""
+            for i in range(6)
+        }
+
         nueva_fila = pd.DataFrame([{
             'FOLIO': folio.strip(),
             'NOMBRE': nombre,
@@ -194,12 +233,19 @@ if st.button("Agregar registro"):
             'CP': cp,
             'COLONIA': colonia,
             'NOM_MUN': municipio,
-            'CURP': curp
+            'CURP': curp,
+            'APOYO_LEGAL': apoyo_legal,
+            'APOYO_ECONOMICO': apoyo_economico,
+            'APOYO_HIJOS': apoyo_hijos,
+            'APOYO_FUNERARIOS': apoyo_gastos_funerarios,
+            'APOYO_SALUD': apoyo_salud,
+            **curps_dict  
         }])
+
         df_capturas = pd.concat([df_capturas, nueva_fila], ignore_index=True)
         st.session_state['archivo_cargado'] = df_capturas
         st.success("✅ Registro agregado.")
-        
+
         st.session_state["form_reset"] = True
         st.rerun()
 
