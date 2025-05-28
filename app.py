@@ -249,6 +249,9 @@ if st.button("Agregar registro"):
         st.session_state["form_reset"] = True
         st.rerun()
 
+# ---------- Descargas ---------- #
+st.markdown("### Descargas")
+
 # ---------- Descargar archivo actualizado ---------- #
 if not df_capturas.empty:
     buffer = io.BytesIO()
@@ -258,5 +261,33 @@ if not df_capturas.empty:
         label="📥 Descargar archivo actualizado",
         data=buffer,
         file_name=f"capturas_actualizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# --- Exportar tabla resumen por CP --- #
+if not df_capturas.empty and 'CP' in df_capturas.columns:
+    pivot_cp = df_capturas.groupby('CP').size().reset_index(name='CASOS')
+    buffer_cp = io.BytesIO()
+    with pd.ExcelWriter(buffer_cp, engine="openpyxl") as writer:
+        pivot_cp.to_excel(writer, index=False)
+
+    st.download_button(
+        label="📊 Descargar resumen por CP",
+        data=buffer_cp,
+        file_name=f"resumen_cp_{datetime.now().strftime('%Y%m%d')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# --- Exportar tabla resumen por municipi --- #
+if not df_capturas.empty and 'NOM_MUN' in df_capturas.columns:
+    pivot_mun = df_capturas.groupby('NOM_MUN').size().reset_index(name='CASOS')
+    buffer_mun = io.BytesIO()
+    with pd.ExcelWriter(buffer_mun, engine="openpyxl") as writer:
+        pivot_mun.to_excel(writer, index=False)
+
+    st.download_button(
+        label="📊 Descargar resumen por municipio",
+        data=buffer_mun,
+        file_name=f"resumen_municipio_{datetime.now().strftime('%Y%m%d')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
